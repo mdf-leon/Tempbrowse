@@ -1,22 +1,13 @@
 'use strict';
-// Configure these before publishing. OWNER is intentionally a placeholder.
-const OWNER = 'OWNER';
-const REPO = 'guarachrome';
-const VERSION = 'Prévia de design';
+const OWNER = 'mdf-leon';
+const REPO = 'Tempbrowse';
+const VERSION = 'Versão 157.0.8103.38';
 const GITHUB = `https://github.com/${OWNER}/${REPO}`;
 const RELEASE_DOWNLOAD = `${GITHUB}/releases/latest/download/`;
-// Demonstration catalog, not a statement that these artifacts have been released.
 const BUILDS = [
- {os:'linux',name:'Linux',arch:'x64',format:'.deb',detail:'Debian · Ubuntu',file:'guarachrome-linux-x64.deb'},
- {os:'linux',name:'Linux',arch:'x64',format:'.rpm',detail:'Fedora · openSUSE',file:'guarachrome-linux-x64.rpm'},
- {os:'linux',name:'Linux',arch:'x64',format:'AppImage',detail:'Portátil',file:'guarachrome-linux-x64.AppImage'},
- {os:'linux',name:'Linux',arch:'x64',format:'Flatpak',detail:'Pacote universal',file:'guarachrome-linux-x64.flatpak'},
- {os:'linux',name:'Linux',arch:'arm64',format:'.deb',detail:'Debian · Ubuntu',file:'guarachrome-linux-arm64.deb'},
- {os:'linux',name:'Linux',arch:'arm64',format:'.rpm',detail:'Fedora · openSUSE',file:'guarachrome-linux-arm64.rpm'},
- {os:'windows',name:'Windows',arch:'x64',format:'.exe',detail:'Instalador',file:'guarachrome-windows-x64.exe'},
- {os:'windows',name:'Windows',arch:'arm64',format:'.exe',detail:'Instalador',file:'guarachrome-windows-arm64.exe'},
- {os:'macos',name:'macOS',arch:'arm64',format:'.dmg',detail:'Apple Silicon',file:'guarachrome-macos-arm64.dmg'},
- {os:'macos',name:'macOS',arch:'x64',format:'.dmg',detail:'Intel',file:'guarachrome-macos-x64.dmg'}
+ {os:'linux',name:'Linux',arch:'x64',format:'.tar.xz',detail:'Portátil · Ubuntu, Debian, Fedora, Arch',file:'guarachrome-157.0.8103.38-linux-x64.tar.xz',size:'126,5 MB',sha:'884cb3bcefbdd971fffd30fef176f146e8b5b14da771d16081c4badd06ae2ab4'},
+ {os:'windows',name:'Windows',arch:'x64',format:'.zip',detail:'Portátil · Windows 10 e 11',file:'guarachrome-157.0.8103.38-windows-x64.zip',size:'198,5 MB',sha:'457149662d83c1f32723d28d8b7ba16783763aea2303fee809bb4a8712cd5cd6'},
+ {os:'android',name:'Android',arch:'arm64',format:'APK',detail:'Em breve',file:null,size:'',sha:''}
 ];
 document.querySelectorAll('[data-github]').forEach(a => a.href = GITHUB);
 document.querySelectorAll('[data-releases]').forEach(a => a.href = `${GITHUB}/releases`);
@@ -42,10 +33,10 @@ async function detectPlatform(){
 }
 function downloadLink(build,primary=false){
  const a=document.createElement('a'); a.className=`button${primary?' primary':''}`;
- a.href=RELEASE_DOWNLOAD+build.file;
- const label = build.os==='macos' ? `Baixar para ${build.arch==='arm64'?'Apple Silicon':'Intel'}` : build.os==='windows' ? `Windows ${build.arch}` : `Baixar ${build.format}`;
+ a.href=RELEASE_DOWNLOAD+build.file; a.setAttribute('download','');
+ const label = `Baixar para ${build.name} (${build.size})`;
  a.textContent=label+' ↓';
- a.setAttribute('aria-label',`${label} — ${build.name} ${build.arch} (download demonstrativo)`);
+ a.setAttribute('aria-label',`${label} — ${build.name} ${build.arch}`);
  return a;
 }
 async function renderHero(){
@@ -53,14 +44,14 @@ async function renderHero(){
  const {os,arch}=await detectPlatform();
  const label=document.querySelector('#platform');
  if(os==='mobile'||os==='unknown'){
-  label.textContent=os==='mobile'?'Por enquanto, só no desktop.':'Sistema não identificado';
+  label.textContent=os==='mobile'?'Android em breve. Por enquanto, só no desktop.':'Sistema não identificado';
   container.firstElementChild.textContent='Ver downloads para desktop ↓';return;
  }
- let matches=BUILDS.filter(b=>b.os===os&&(!arch||b.arch===arch));
- if(os==='linux'&&!arch) matches=matches.filter(b=>b.arch==='x64');
+ let matches=BUILDS.filter(b=>b.os===os&&b.file);
+ if(!matches.length){label.textContent='Sistema sem build ainda';container.firstElementChild.textContent='Ver downloads ↓';return;}
  container.replaceChildren(...matches.map((b,i)=>downloadLink(b,i===0)));
  const name=matches[0]?.name||os;
- label.textContent=`${name}${arch?' · '+arch:os==='macos'?' · escolha seu chip':' · x64 / outras arquiteturas abaixo'}`;
+ label.textContent=`${name} · x64 · ${matches[0].format} · ${matches[0].size}`;
 }
 renderHero();
 const search=document.querySelector('#build-search');
@@ -73,9 +64,13 @@ if(search){
   list.replaceChildren();
   matches.forEach(b=>{
    const card=document.createElement('article');card.className='build';
-   const icon=document.createElement('span');icon.className='os-icon';icon.setAttribute('aria-hidden','true');icon.textContent={linux:'⌘',windows:'⊞',macos:'◈'}[b.os];
-   const info=document.createElement('div');info.className='build-info';const h=document.createElement('h2');h.textContent=`${b.name} · ${b.format}`;const small=document.createElement('small');small.textContent=`${b.arch} / ${b.detail}`;info.append(h,small);
-   const a=document.createElement('a');a.href=RELEASE_DOWNLOAD+b.file;a.textContent='Baixar ↓';a.setAttribute('aria-label',`Baixar ${b.name} ${b.arch} ${b.format} (demonstrativo)`);card.append(icon,info,a);list.append(card);
+   const icon=document.createElement('span');icon.className='os-icon';icon.setAttribute('aria-hidden','true');icon.textContent={linux:'⌘',windows:'⊞',macos:'◈',android:'▣'}[b.os];
+   const info=document.createElement('div');info.className='build-info';const h=document.createElement('h2');h.textContent=`${b.name} · ${b.format}`;const small=document.createElement('small');small.textContent=`${b.arch} / ${b.detail}${b.size?' · '+b.size:''}`;info.append(h,small);
+   if(b.sha){const c=document.createElement('code');c.className='sha';c.textContent='SHA-256: '+b.sha;info.append(c);}
+   let a;
+   if(b.file){a=document.createElement('a');a.href=RELEASE_DOWNLOAD+b.file;a.setAttribute('download','');a.textContent='Baixar ↓';a.setAttribute('aria-label',`Baixar ${b.name} ${b.arch} ${b.format}`);}
+   else{a=document.createElement('span');a.className='soon';a.textContent='Em breve';}
+   card.append(icon,info,a);list.append(card);
   });
   document.querySelector('#result-count').textContent=`${matches.length} ${matches.length===1?'opção':'opções'} · ${VERSION}`;
   document.querySelector('#no-results').hidden=matches.length!==0;
